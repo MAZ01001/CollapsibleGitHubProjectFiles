@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      1.1
+// @version      1.2
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -13,7 +13,7 @@
     "use strict";
     let table=document.querySelector("h2#folders-and-files+table>tbody"),
         updatetimeout=NaN,
-        expand=localStorage.getItem("github_collapse","1")==="0";
+        expand=localStorage.getItem("github_collapse",document.querySelector("div:has(nav a>span[data-content=README])+div>article")==null?"0":"1")==="0";
     localStorage.setItem("github_collapse",expand?"1":"0");
     const
         button=Object.assign(document.createElement("span"),{textContent:expand?"collapse project files":"expand project files",tabIndex:0,role:"button"}),
