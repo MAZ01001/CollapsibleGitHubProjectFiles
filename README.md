@@ -16,9 +16,9 @@ Format: `show NUM rows // DEFAULT`
 - `show/hide NUM rows` will show/hide the list when clicked
   - `NUM` displays the number of files/folders in the list
 - `DEFAULT` show the current default _collapse state_ and when clicked will cycle through the following options
-  - `auto` (default) only collapse when a README is displayed
+  - `auto` (default) only collapse when a README (or LICENCE or similar) is displayed
   - `expanded` never collapse
   - `collapsed` allways collapse
-  - `last` uses last collapse state (starts collapsed)
+  - `last` uses last _collapse state_ (starts collapsed)
 
 Click [here](https://github.com/MAZ01001/CollapsibleGitHubProjectFiles/raw/main/github_collapse.user.js "GitHub raw URL to github_collapse.user.js file") to see this userscript in tampermonkey (if you have the plugin installed).

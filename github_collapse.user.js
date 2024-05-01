@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      2.0
+// @version      2.1
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -12,8 +12,7 @@
 (async function(){
     "use strict";
     const
-        READMEarticle=()=>document.querySelector("div#readme:has(h2>a[href=\\#readme]) div>article")!=null||document.querySelector("div:has(nav a>span[data-content=README])+div>article")!=null,
-        RepoOverview=()=>document.querySelector("react-partial[partial-name=repos-overview]")!=null,
+        READMEarticle=()=>document.querySelector("div#readme:has(h2>a[href=\\#readme])")!=null||document.querySelector("div>h2+nav[aria-label=Repository\\ files]")!=null,
         /**@type {(table:HTMLTableElement,button:HTMLSpanElement,collapse:boolean)=>void} for {@linkcode button_toggle}*/
         Expand=(table,button,collapse)=>{
             "use strict";
@@ -43,14 +42,15 @@
     let
         table=document.querySelector("h2#folders-and-files+table>tbody"),
         /**
-         * - `"auto"`: only collapse when a README is displayed
+         * - `"auto"`: only collapse when a README (or LICENCE or similar) is displayed
          * - `"expand"`: never collapse
          * - `"collapse"`: allways collapse
-         * - `"last"`: uses last collapse state (_starts collapsed_)
+         * - `"last"`: uses last _collapse state_ (starts collapsed)
          */
         auto=localStorage.getItem("github_collapse_auto")??"auto",
         collapse=LoadCollapse(auto),
-        updatetimeout=NaN;
+        updateTableLastPath=location.pathname,
+        updateBodyTimeout=NaN;
     const
         button_toggle=Object.assign(document.createElement("span"),{tabIndex:0,role:"button",title:"toggle list of files & folders"}),
         button_default=Object.assign(document.createElement("span"),{textContent:auto,tabIndex:0,role:"button",title:"select default collapse state: auto/expanded/collapsed/last"}),
@@ -58,21 +58,35 @@
         td=Object.assign(document.createElement("td"),{colSpan:3}),
         tableObserver=new MutationObserver(()=>{
             "use strict";
-            Expand(table,button_toggle,collapse);
+            if(READMEarticle())
+                if(!table.contains(tr)){
+                    table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
+                    Expand(table,button_toggle,collapse=LoadCollapse(auto));
+                }else if(updateTableLastPath!==location.pathname)Expand(table,button_toggle,collapse=LoadCollapse(auto));
+                else Expand(table,button_toggle,collapse);
+            else{
+                tr.remove();
+                for(const row of table.querySelectorAll("tr[id^=folder-row-]"))row.style.display="";
+            }
+            updateTableLastPath=location.pathname;
         }),
-        UpdateCallback=()=>{
+        UpdateBodyCallback=()=>{
             "use strict";
-            if(!RepoOverview()&&!READMEarticle())return;
+            const newTable=document.querySelector("h2#folders-and-files+table>tbody");
+            if(newTable===table)return;
             tableObserver.disconnect();
-            (table=document.querySelector("h2#folders-and-files+table>tbody")).querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
-            Expand(table,button_toggle,collapse=LoadCollapse(auto));
-            tableObserver.observe(table,{childList:true,subtree:true});
+            table=newTable;
+            if(table!=null){
+                table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
+                Expand(table,button_toggle,collapse=LoadCollapse(auto));
+                tableObserver.observe(table,{childList:true,subtree:true});
+            }
         },
         bodyObserver=new MutationObserver(mutations=>{
             "use strict";
-            if(mutations.some(v=>table.contains(v.target)))return;
-            clearTimeout(updatetimeout);
-            updatetimeout=setTimeout(UpdateCallback,0);
+            if(table!=null&&mutations.some(v=>table.contains(v.target)))return;
+            clearTimeout(updateBodyTimeout);
+            updateBodyTimeout=setTimeout(UpdateBodyCallback,0);
         });
     button_toggle.style.cursor="pointer";
     button_toggle.classList.add("Link--muted");
@@ -102,7 +116,7 @@
     td.style.borderInline="4px solid var(--borderColor-default, var(--color-border-default))";
     td.append(button_toggle," // ",button_default);
     tr.appendChild(td);
-    if(table!=null&&(RepoOverview()||READMEarticle())){
+    if(table!=null&&READMEarticle()){
         table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
         Expand(table,button_toggle,collapse=LoadCollapse(auto));
         tableObserver.observe(table,{childList:true,subtree:true});
