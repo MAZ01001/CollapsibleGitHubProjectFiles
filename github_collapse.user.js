@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      2.1
+// @version      2.2
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -12,11 +12,12 @@
 (async function(){
     "use strict";
     const
-        READMEarticle=()=>document.querySelector("div#readme:has(h2>a[href=\\#readme])")!=null||document.querySelector("div>h2+nav[aria-label=Repository\\ files]")!=null,
+        startTime=performance.now(),
+        READMEarticle=()=>document.getElementById("folders-and-files")?.parentElement?.nextElementSibling?.querySelector("div#readme,nav span[data-content=README]")!=null,
         /**@type {(table:HTMLTableElement,button:HTMLSpanElement,collapse:boolean)=>void} for {@linkcode button_toggle}*/
         Expand=(table,button,collapse)=>{
             "use strict";
-            const rows=table.querySelectorAll("tr[id^=folder-row-]");
+            const rows=table.querySelectorAll("tbody>tr[id^=folder-row-]");
             if(collapse){
                 for(const row of rows)row.style.display="none";
                 button.textContent=`show ${rows.length} rows`;
@@ -29,7 +30,6 @@
         LoadCollapse=auto=>{
             "use strict";
             let collapse=false;
-            localStorage.setItem("github_collapse_auto",auto);
             switch(auto){
                 case"auto":collapse=READMEarticle();break;
                 case"expand":collapse=false;break;
@@ -40,7 +40,7 @@
             return collapse;
         };
     let
-        table=document.querySelector("h2#folders-and-files+table>tbody"),
+        table=null,
         /**
          * - `"auto"`: only collapse when a README (or LICENCE or similar) is displayed
          * - `"expand"`: never collapse
@@ -49,44 +49,37 @@
          */
         auto=localStorage.getItem("github_collapse_auto")??"auto",
         collapse=LoadCollapse(auto),
-        updateTableLastPath=location.pathname,
+        updateTableLastPath="",
         updateBodyTimeout=NaN;
     const
         button_toggle=Object.assign(document.createElement("span"),{tabIndex:0,role:"button",title:"toggle list of files & folders"}),
         button_default=Object.assign(document.createElement("span"),{textContent:auto,tabIndex:0,role:"button",title:"select default collapse state: auto/expanded/collapsed/last"}),
-        tr=document.createElement("tr"),
         td=Object.assign(document.createElement("td"),{colSpan:3}),
-        tableObserver=new MutationObserver(()=>{
+        tr=document.createElement("tr"),
+        UpdateTableCallback=()=>{
             "use strict";
-            if(READMEarticle())
-                if(!table.contains(tr)){
-                    table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
-                    Expand(table,button_toggle,collapse=LoadCollapse(auto));
-                }else if(updateTableLastPath!==location.pathname)Expand(table,button_toggle,collapse=LoadCollapse(auto));
-                else Expand(table,button_toggle,collapse);
-            else{
-                tr.remove();
-                for(const row of table.querySelectorAll("tr[id^=folder-row-]"))row.style.display="";
-            }
+            if(tr.parentElement?.parentElement!==table){
+                table.querySelector("tbody>tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
+                Expand(table,button_toggle,collapse=LoadCollapse(auto));
+            }else if(location.pathname===updateTableLastPath)Expand(table,button_toggle,collapse);
+            else Expand(table,button_toggle,collapse=LoadCollapse(auto));
             updateTableLastPath=location.pathname;
-        }),
+        },
+        tableObserver=new MutationObserver(UpdateTableCallback),
         UpdateBodyCallback=()=>{
             "use strict";
-            const newTable=document.querySelector("h2#folders-and-files+table>tbody");
+            const newTable=document.getElementById("folders-and-files")?.nextElementSibling;
             if(newTable===table)return;
             tableObserver.disconnect();
             table=newTable;
-            if(table!=null){
-                table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
-                Expand(table,button_toggle,collapse=LoadCollapse(auto));
-                tableObserver.observe(table,{childList:true,subtree:true});
-            }
+            if(table==null)return;
+            UpdateTableCallback();
+            tableObserver.observe(table,{childList:true,subtree:true});
         },
-        bodyObserver=new MutationObserver(mutations=>{
+        bodyObserver=new MutationObserver(()=>{
             "use strict";
-            if(table!=null&&mutations.some(v=>table.contains(v.target)))return;
             clearTimeout(updateBodyTimeout);
-            updateBodyTimeout=setTimeout(UpdateBodyCallback,0);
+            updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
         });
     button_toggle.style.cursor="pointer";
     button_toggle.classList.add("Link--muted");
@@ -116,10 +109,14 @@
     td.style.borderInline="4px solid var(--borderColor-default, var(--color-border-default))";
     td.append(button_toggle," // ",button_default);
     tr.appendChild(td);
-    if(table!=null&&READMEarticle()){
-        table.querySelector("tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
-        Expand(table,button_toggle,collapse=LoadCollapse(auto));
-        tableObserver.observe(table,{childList:true,subtree:true});
-    }
+    updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
     bodyObserver.observe(document.body,{childList:true,subtree:true});
+    console.info(
+        "%cCollapse GitHub project files: %cversion 2.2%c loaded in %c%s ms",
+        "background:#000;color:#0f0;font-size:larger",
+        "background:#000;color:#f90",
+        "background:#000;color:#0f0",
+        "background:#000;color:#f90",
+        (performance.now()-startTime).toFixed(2)
+    );
 })();
