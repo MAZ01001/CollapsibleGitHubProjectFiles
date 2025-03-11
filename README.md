@@ -2,10 +2,13 @@
 
 A [Tampermonkey](https://www.tampermonkey.net/ "official tampermonkey website") userscript to make the project file lists on GitHub collapsible.
 
+> [!IMPORTANT]
 >
-> Vote for the [`[Feature] Collapsible project files on Repository overview #109986`](https://github.com/orgs/community/discussions/109986 "open GitHub/community discussion 109986") if you want this to be a built-in feature on GitHub.
-> Or generally argue about whether this is a good idea or not.
+> Vote for the [`[Feature] Collapsible project files on Repository overview #109986`](https://github.com/orgs/community/discussions/109986 "open GitHub/community discussion 109986")
 >
+> If you want this to be a built-in feature on GitHub or generally argue about whether this is a good idea or not.
+
+<img src="./preview.gif" width="600" alt="preview GIF" title="click to view full size">
 
 Uses `localStorage` to be persistent on `github.com` domain when reloading page/browser:
 

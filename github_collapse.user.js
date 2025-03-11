@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      2.2
+// @version      2.3
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -54,6 +54,27 @@
     const
         button_toggle=Object.assign(document.createElement("span"),{tabIndex:0,role:"button",title:"toggle list of files & folders"}),
         button_default=Object.assign(document.createElement("span"),{textContent:auto,tabIndex:0,role:"button",title:"select default collapse state: auto/expanded/collapsed/last"}),
+        /**(non-passive) event handler callback for {@linkcode button_toggle}*/
+        button_toggle_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keypress` event*/ev=>{
+            "use strict";
+            if(ev instanceof KeyboardEvent&&ev.key!=="Enter"&&ev.key!==" ")return;
+            ev.preventDefault();
+            localStorage.setItem("github_collapse",(collapse=!collapse)?"1":"0");
+            Expand(table,button_toggle,collapse);
+        },
+        /**(non-passive) event handler callback for {@linkcode button_default}*/
+        button_default_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keypress` event*/ev=>{
+            "use strict";
+            if(ev instanceof KeyboardEvent&&ev.key!=="Enter"&&ev.key!==" ")return;
+            ev.preventDefault();
+            switch(auto){
+                case"auto":auto="expand";break;
+                case"expand":auto="collapse";break;
+                case"collapse":auto="last";break;
+                case"last":auto="auto";break;
+            }
+            localStorage.setItem("github_collapse_auto",button_default.textContent=auto);
+        },
         td=Object.assign(document.createElement("td"),{colSpan:3}),
         tr=document.createElement("tr"),
         UpdateTableCallback=()=>{
@@ -83,25 +104,12 @@
         });
     button_toggle.style.cursor="pointer";
     button_toggle.classList.add("Link--muted");
-    button_toggle.addEventListener("click",ev=>{
-        "use strict";
-        ev.preventDefault();
-        localStorage.setItem("github_collapse",(collapse=!collapse)?"1":"0");
-        Expand(table,button_toggle,collapse);
-    },{passive:false});
+    button_toggle.addEventListener("click",button_toggle_handler,{passive:false});
+    button_toggle.addEventListener("keypress",button_toggle_handler,{passive:false});
     button_default.style.cursor="pointer";
     button_default.classList.add("Link--muted");
-    button_default.addEventListener("click",ev=>{
-        "use strict";
-        ev.preventDefault();
-        switch(auto){
-            case"auto":auto="expand";break;
-            case"expand":auto="collapse";break;
-            case"collapse":auto="last";break;
-            case"last":auto="auto";break;
-        }
-        localStorage.setItem("github_collapse_auto",button_default.textContent=auto);
-    },{passive:false});
+    button_default.addEventListener("click",button_default_handler,{passive:false});
+    button_default.addEventListener("keypress",button_default_handler,{passive:false});
     td.style.textAlign="center";
     td.style.fontStyle="italic";
     td.style.paddingBlock=".2rem";
@@ -112,11 +120,10 @@
     updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
     bodyObserver.observe(document.body,{childList:true,subtree:true});
     console.info(
-        "%cCollapse GitHub project files: %cversion 2.2%c loaded in %c%s ms",
+        "%cCollapse GitHub project files: %cversion 2.3%c loaded in %o ms",
         "background:#000;color:#0f0;font-size:larger",
         "background:#000;color:#f90",
         "background:#000;color:#0f0",
-        "background:#000;color:#f90",
-        (performance.now()-startTime).toFixed(2)
+        Number((performance.now()-startTime).toFixed(4))
     );
 })();
