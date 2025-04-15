@@ -4,7 +4,7 @@ A [Tampermonkey](https://www.tampermonkey.net/ "official tampermonkey website") 
 
 > [!IMPORTANT]
 >
-> Vote for the [`[Feature] Collapsible project files on Repository overview #109986`](https://github.com/orgs/community/discussions/109986 "open GitHub/community discussion 109986")
+> Vote for community/community#109986
 >
 > If you want this to be a built-in feature on GitHub or generally argue about whether this is a good idea or not.
 

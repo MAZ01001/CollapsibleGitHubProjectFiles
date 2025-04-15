@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      2.3
+// @version      2.4
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -19,11 +19,15 @@
             "use strict";
             const rows=table.querySelectorAll("tbody>tr[id^=folder-row-]");
             if(collapse){
-                for(const row of rows)row.style.display="none";
-                button.textContent=`show ${rows.length} rows`;
+                for(const row of rows)
+                    if(row.style.display!=="none")row.style.display="none";
+                const txt=`show ${rows.length} rows`;
+                if(button.textContent!==txt)button.textContent=txt;
             }else{
-                for(const row of rows)row.style.display="";
-                button.textContent=`hide ${rows.length} rows`;
+                for(const row of rows)
+                    if(row.style.display!=="")row.style.display="";
+                const txt=`hide ${rows.length} rows`;
+                if(button.textContent!==txt)button.textContent=txt;
             }
         },
         /**@type {(auto:string)=>boolean} use {@linkcode auto}*/
@@ -50,23 +54,26 @@
         auto=localStorage.getItem("github_collapse_auto")??"auto",
         collapse=LoadCollapse(auto),
         updateTableLastPath="",
+        updateTableTimeout=NaN,
         updateBodyTimeout=NaN;
     const
         button_toggle=Object.assign(document.createElement("span"),{tabIndex:0,role:"button",title:"toggle list of files & folders"}),
         button_default=Object.assign(document.createElement("span"),{textContent:auto,tabIndex:0,role:"button",title:"select default collapse state: auto/expanded/collapsed/last"}),
         /**(non-passive) event handler callback for {@linkcode button_toggle}*/
-        button_toggle_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keypress` event*/ev=>{
+        button_toggle_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keydown` event*/ev=>{
             "use strict";
             if(ev instanceof KeyboardEvent&&ev.key!=="Enter"&&ev.key!==" ")return;
             ev.preventDefault();
+            if(ev instanceof KeyboardEvent&&ev.repeat)return;
             localStorage.setItem("github_collapse",(collapse=!collapse)?"1":"0");
             Expand(table,button_toggle,collapse);
         },
         /**(non-passive) event handler callback for {@linkcode button_default}*/
-        button_default_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keypress` event*/ev=>{
+        button_default_handler=/**@param {MouseEvent|KeyboardEvent} ev `click` or `keydown` event*/ev=>{
             "use strict";
             if(ev instanceof KeyboardEvent&&ev.key!=="Enter"&&ev.key!==" ")return;
             ev.preventDefault();
+            if(ev instanceof KeyboardEvent&&ev.repeat)return;
             switch(auto){
                 case"auto":auto="expand";break;
                 case"expand":auto="collapse";break;
@@ -86,7 +93,11 @@
             else Expand(table,button_toggle,collapse=LoadCollapse(auto));
             updateTableLastPath=location.pathname;
         },
-        tableObserver=new MutationObserver(UpdateTableCallback),
+        tableObserver=new MutationObserver(()=>{
+            "use strict";
+            clearTimeout(updateTableTimeout);
+            updateTableTimeout=setTimeout(UpdateTableCallback,0);
+        }),
         UpdateBodyCallback=()=>{
             "use strict";
             const newTable=document.getElementById("folders-and-files")?.nextElementSibling;
@@ -105,11 +116,11 @@
     button_toggle.style.cursor="pointer";
     button_toggle.classList.add("Link--muted");
     button_toggle.addEventListener("click",button_toggle_handler,{passive:false});
-    button_toggle.addEventListener("keypress",button_toggle_handler,{passive:false});
+    button_toggle.addEventListener("keydown",button_toggle_handler,{passive:false});
     button_default.style.cursor="pointer";
     button_default.classList.add("Link--muted");
     button_default.addEventListener("click",button_default_handler,{passive:false});
-    button_default.addEventListener("keypress",button_default_handler,{passive:false});
+    button_default.addEventListener("keydown",button_default_handler,{passive:false});
     td.style.textAlign="center";
     td.style.fontStyle="italic";
     td.style.paddingBlock=".2rem";
