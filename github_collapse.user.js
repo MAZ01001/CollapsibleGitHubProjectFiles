@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         collapsible GitHub project files
-// @version      2.4
+// @version      2.5
 // @description  make GitHub project files collapsible
 // @author       MAZ / MAZ01001
 // @source       https://github.com/MAZ01001/CollapsibleGitHubProjectFiles
@@ -17,7 +17,7 @@
         /**@type {(table:HTMLTableElement,button:HTMLSpanElement,collapse:boolean)=>void} for {@linkcode button_toggle}*/
         Expand=(table,button,collapse)=>{
             "use strict";
-            const rows=table.querySelectorAll("tbody>tr[id^=folder-row-]");
+            const rows=table.querySelectorAll(":scope>tbody>tr[id^=folder-row-]");
             if(collapse){
                 for(const row of rows)
                     if(row.style.display!=="none")row.style.display="none";
@@ -87,7 +87,7 @@
         UpdateTableCallback=()=>{
             "use strict";
             if(tr.parentElement?.parentElement!==table){
-                table.querySelector("tbody>tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
+                table.querySelector(":scope>tbody>tr#folder-row-0").insertAdjacentElement("beforebegin",tr);
                 Expand(table,button_toggle,collapse=LoadCollapse(auto));
             }else if(location.pathname===updateTableLastPath)Expand(table,button_toggle,collapse);
             else Expand(table,button_toggle,collapse=LoadCollapse(auto));
@@ -96,20 +96,28 @@
         tableObserver=new MutationObserver(()=>{
             "use strict";
             clearTimeout(updateTableTimeout);
-            updateTableTimeout=setTimeout(UpdateTableCallback,0);
+            updateTableTimeout=setTimeout(UpdateTableCallback,10);
         }),
         UpdateBodyCallback=()=>{
             "use strict";
-            const newTable=document.getElementById("folders-and-files")?.nextElementSibling;
-            if(newTable===table)return;
+            clearTimeout(updateTableTimeout);
+            bodyObserver.disconnect();//~ rehook body observer every time instead of keeping track of document/body
+            bodyObserver.observe(document.body,{childList:true,subtree:true});
+            //// const newTable=document.querySelector("#folders-and-files+div>table");
+            const newTable=document.querySelector("table:has(>tbody>tr#folder-row-0)");
+            if(newTable===table){
+                if(table!=null)updateTableTimeout=setTimeout(UpdateTableCallback,10);
+                return;
+            }
             tableObserver.disconnect();
-            table=newTable;
-            if(table==null)return;
-            UpdateTableCallback();
-            tableObserver.observe(table,{childList:true,subtree:true});
+            tr.remove();
+            if((table=newTable)!=null)tableObserver.observe(table,{childList:true,subtree:true});
+            clearTimeout(updateBodyTimeout);
+            updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
         },
         bodyObserver=new MutationObserver(()=>{
             "use strict";
+            clearTimeout(updateTableTimeout);
             clearTimeout(updateBodyTimeout);
             updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
         });
@@ -129,9 +137,13 @@
     td.append(button_toggle," // ",button_default);
     tr.appendChild(td);
     updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
-    bodyObserver.observe(document.body,{childList:true,subtree:true});
+    window.addEventListener("popstate",()=>{
+        clearTimeout(updateTableTimeout);
+        clearTimeout(updateBodyTimeout);
+        updateBodyTimeout=setTimeout(UpdateBodyCallback,10);
+    },{passive:true});
     console.info(
-        "%cCollapse GitHub project files: %cversion 2.3%c loaded in %o ms",
+        "%cCollapse GitHub project files: %cversion 2.5%c loaded in %o ms",
         "background:#000;color:#0f0;font-size:larger",
         "background:#000;color:#f90",
         "background:#000;color:#0f0",
